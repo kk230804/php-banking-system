@@ -1,0 +1,15 @@
+UPDATE transactions
+SET (date='2025-04-10', type= 'credit', description='Salary Deposit') VALUES
+WHERE AccountNumber is ACC100001;
+    (date IS NULL OR type IS NULL OR description IS NULL);
+---------------------------INSERT INTO transactions (AccountNumber, date, type, amount, description, balance) VALUES
+('1234567890', '2025-04-10', 'credit', 10000.00, 'Salary Deposit', 10000.00),
+('1234567890', '2025-04-11', 'debit', 1200.00, 'Electricity Bill Payment', 8800.00),
+('1234567890', '2025-04-12', 'debit', 500.00, 'ATM Withdrawal', 8300.00),
+('1234567890', '2025-04-13', 'credit', 1500.00, 'Cash Deposit', 9800.00),
+('1234567890', '2025-04-14', 'debit', 200.00, 'Mobile Recharge', 9600.00),
+('1234567890', '2025-04-15', 'debit', 250.00, 'UPI to Ramesh', 9350.00),
+('1234567890', '2025-04-16', 'credit', 3000.00, 'NEFT from Ajay', 12350.00),
+('1234567890', '2025-04-17', 'debit', 1000.00, 'Online Shopping Amazon', 11350.00),
+('1234567890', '2025-04-18', 'credit', 200.00, 'UPI Refund', 11550.00),
+('1234567890', '2025-04-19', 'debit', 500.00, 'ATM Withdrawal', 11050.00);

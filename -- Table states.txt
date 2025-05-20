@@ -1,0 +1,349 @@
+-- Table: states
+CREATE TABLE states (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+-- Table: cities
+CREATE TABLE cities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    pincode VARCHAR(10),
+    state_id INT,
+    FOREIGN KEY (state_id) REFERENCES states(id)
+);
+
+-- Table: customers
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fullname VARCHAR(100),
+    dob DATE,
+    age INT,
+    state VARCHAR(100),
+    city VARCHAR(100),
+    pincode VARCHAR(10)
+);
+---------------------------------------------------------------------
+<?php
+$conn = new PDO("mysql:host=localhost;dbname=bankdata", "root", "MYsql3@pro");
+$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Handle AJAX for city dropdown
+if (isset($_POST['get_cities']) && isset($_POST['state_id'])) {
+    $stmt = $conn->prepare("SELECT id, name FROM cities WHERE state_id = ? ORDER BY name ASC");
+    $stmt->execute([$_POST['state_id']]);
+    $cities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($cities);
+    exit;
+}
+
+// Handle AJAX for pincode
+if (isset($_POST['get_pincode']) && isset($_POST['city_id'])) {
+    $stmt = $conn->prepare("SELECT pincode FROM cities WHERE id = ?");
+    $stmt->execute([$_POST['city_id']]);
+    $pincode = $stmt->fetchColumn();
+    echo $pincode;
+    exit;
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+    $fullname = $_POST['fullname'];
+    $dob = $_POST['dob'];
+    $city_id = $_POST['city'];
+    
+    // Get city name and pincode
+    $stmt = $conn->prepare("SELECT name, pincode, state_id FROM cities WHERE id = ?");
+    $stmt->execute([$city_id]);
+    $cityData = $stmt->fetch(PDO::FETCH_ASSOC);
+    $city = $cityData['name'];
+    $pincode = $cityData['pincode'];
+
+    // Get state name
+    $stmt = $conn->prepare("SELECT name FROM states WHERE id = ?");
+    $stmt->execute([$cityData['state_id']]);
+    $state = $stmt->fetchColumn();
+
+    // Calculate age
+    $age = date_diff(date_create($dob), date_create('today'))->y;
+
+    // Insert data
+    $stmt = $conn->prepare("INSERT INTO customers (fullname, dob, age, state, city, pincode) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$fullname, $dob, $age, $state, $city, $pincode]);
+
+    echo "<script>alert('Signup Successful!');</script>";
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bank Signup</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: url('D:/wamp64/www/BankProject/images/back2.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+        .signup-form {
+            width: 400px;
+            margin: 50px auto;
+            background: rgba(255,255,255,0.9);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px gray;
+        }
+        .signup-form input, .signup-form select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+        }
+        .signup-form button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #2a7ae2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="signup-form">
+    <h2 align="center">Bank Signup</h2>
+    <form method="post">
+        <input type="text" name="fullname" placeholder="Full Name" required>
+
+        <label>Date of Birth:</label>
+        <input type="date" name="dob" id="dob" required>
+
+        <label>State:</label>
+        <select id="state" name="state" required>
+            <option value="">Select State</option>
+            <?php
+            $stmt = $conn->query("SELECT id, name FROM states ORDER BY name ASC");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo "<option value='{$row['id']}'>{$row['name']}</option>";
+            }
+            ?>
+        </select>
+
+        <label>City:</label>
+        <select id="city" name="city" required>
+            <option value="">Select City</option>
+        </select>
+
+        <label>Pincode:</label>
+        <input type="text" id="pincode" name="pincode" readonly>
+
+        <button type="submit" name="submit">Signup</button>
+    </form>
+</div>
+
+<script>
+document.getElementById("state").addEventListener("change", function () {
+    let stateId = this.value;
+    fetch("signup.php", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: "get_cities=1&state_id=" + stateId
+    })
+    .then(res => res.json())
+    .then(data => {
+        let citySelect = document.getElementById("city");
+        citySelect.innerHTML = '<option value="">Select City</option>';
+        data.forEach(city => {
+            citySelect.innerHTML += `<option value="${city.id}">${city.name}</option>`;
+        });
+    });
+});
+
+document.getElementById("city").addEventListener("change", function () {
+    let cityId = this.value;
+    fetch("signup.php", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: "get_pincode=1&city_id=" + cityId
+    })
+    .then(res => res.text())
+    .then(data => {
+        document.getElementById("pincode").value = data;
+    });
+});
+</script>
+
+</body>
+</html>
+------------------------------------------------------------------------------
+-- Insert into states
+INSERT INTO states (name) VALUES
+('Andhra Pradesh'), ('Arunachal Pradesh'), ('Assam'), ('Bihar'),
+('Chhattisgarh'), ('Goa'), ('Gujarat'), ('Haryana'),
+('Himachal Pradesh'), ('Jharkhand'), ('Karnataka'), ('Kerala'),
+('Madhya Pradesh'), ('Maharashtra'), ('Manipur'), ('Meghalaya'),
+('Mizoram'), ('Nagaland'), ('Odisha'), ('Punjab'),
+('Rajasthan'), ('Sikkim'), ('Tamil Nadu'), ('Telangana'),
+('Tripura'), ('Uttar Pradesh'), ('Uttarakhand'), ('West Bengal'),
+('Delhi');
+
+-- Insert into cities (only major ones, with pincode and state_id mapping)
+INSERT INTO cities (name, pincode, state_id) VALUES ('Ahmedabad', '380001', (SELECT id FROM states WHERE name = 'Gujarat')),
+('Akola', '444001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Amravati', '444601', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Aurangabad', '431001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Bengaluru', '560001', (SELECT id FROM states WHERE name = 'Karnataka')),
+('Bhopal', '462001', (SELECT id FROM states WHERE name = 'Madhya Pradesh')),
+('Chandigarh', '160017', (SELECT id FROM states WHERE name = 'Punjab')),
+('Chandni Chowk', '110006', (SELECT id FROM states WHERE name = 'Delhi')),
+('Chennai', '600001', (SELECT id FROM states WHERE name = 'Tamil Nadu')),
+('Connaught Place', '110001', (SELECT id FROM states WHERE name = 'Delhi')),
+('Delhi', '110001', (SELECT id FROM states WHERE name = 'Delhi')),
+('Dwarka', '110075', (SELECT id FROM states WHERE name = 'Delhi')),
+('Gwalior', '474001', (SELECT id FROM states WHERE name = 'Madhya Pradesh')),
+('Hyderabad', '500001', (SELECT id FROM states WHERE name = 'Telangana')),
+('Indore', '452001', (SELECT id FROM states WHERE name = 'Madhya Pradesh')),
+('Jaipur', '302001', (SELECT id FROM states WHERE name = 'Rajasthan')),
+('Kalbadevi', '400002', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Khamgaon', '444303', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Kochi', '682001', (SELECT id FROM states WHERE name = 'Kerala')),
+('Kolkata', '700001', (SELECT id FROM states WHERE name = 'West Bengal')),
+('Lonar', '443302', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Lucknow', '226001', (SELECT id FROM states WHERE name = 'Uttar Pradesh')),
+('Main Branch', '444001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Malegaon', '444503', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Malkapur', '443101', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Malkapur Road', '444007', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Manora', '444404', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Mangrulpir', '444403', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Mumbai', '400001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Murtizapur', '444107', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Mysore', '570001', (SELECT id FROM states WHERE name = 'Karnataka')),
+('Nagpur', '440001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('New Delhi', '110001', (SELECT id FROM states WHERE name = 'Delhi')),
+('Old City', '444008', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Panaji', '403001', (SELECT id FROM states WHERE name = 'Goa')),
+('Paratwada', '444805', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Patna', '800001', (SELECT id FROM states WHERE name = 'Bihar')),
+('Pune', '411001', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Raipur', '492001', (SELECT id FROM states WHERE name = 'Chhattisgarh')),
+('Ranchi', '834001', (SELECT id FROM states WHERE name = 'Jharkhand')),
+('Risod', '444506', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Shelubazar', '444504', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Shirpur', '444402', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Sindhi Camp', '444005', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Surat', '395001', (SELECT id FROM states WHERE name = 'Gujarat')),
+('Tapadia Nagar', '444003', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Tajnapeth', '444002', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Telhara', '444108', (SELECT id FROM states WHERE name = 'Maharashtra')),
+('Thiruvananthapuram', '695001', (SELECT id FROM states WHERE name = 'Kerala')),
+('Vadodara', '390001', (SELECT id FROM states WHERE name = 'Gujarat')),
+('Vijayawada', '520001', (SELECT id FROM states WHERE name = 'Andhra Pradesh')),
+('Visakhapatnam', '530001', (SELECT id FROM states WHERE name = 'Andhra Pradesh')),
+('Washim', '444505', (SELECT id FROM states WHERE name = 'Maharashtra'));
+
+
+----------------------------------------------------------------------------------
+INSERT INTO customers (fullname, dob, age, state, city, pincode) VALUES
+('Ravi Kumar', '1990-06-15', 34, 'Maharashtra', 'Mumbai', '400001'),
+('Asha Mehta', '1985-10-10', 39, 'Madhya Pradesh', 'Indore', '452001');
+----------------------------------------------------------------------------------
+✅ 1. Delete Old Tables (If They Exist)
+To delete the existing cities and states tables from your MySQL database:
+
+sql
+Copy
+Edit
+DROP TABLE IF EXISTS cities;
+DROP TABLE IF EXISTS states;
+✅ 2. Create Fresh Tables
+Here’s how to create new tables for states and cities:
+
+sql
+Copy
+Edit
+-- Create states table
+CREATE TABLE states (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Create cities table
+CREATE TABLE cities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    pincode VARCHAR(6) NOT NULL,
+    state_id INT NOT NULL,
+    FOREIGN KEY (state_id) REFERENCES states(id)
+);
+✅ 3. Insert New Data
+Now paste the full sorted and deduplicated INSERT statements I gave you earlier:
+
+sql
+Copy
+Edit
+-- Insert into states
+INSERT INTO states (name) VALUES
+('Andhra Pradesh'),
+('Bihar'),
+('Chhattisgarh'),
+('Delhi'),
+('Goa'),
+('Gujarat'),
+('Jharkhand'),
+('Karnataka'),
+('Kerala'),
+('Madhya Pradesh'),
+('Maharashtra'),
+('Punjab'),
+('Rajasthan'),
+('Tamil Nadu'),
+('Telangana'),
+('Uttar Pradesh'),
+('West Bengal');
+
+-- Insert into cities
+INSERT INTO cities (name, pincode, state_id) VALUES
+-- (use the cleaned and sorted list I gave you above)
+----------------------------------------------------------------------------------
+📝 Notes:
+Always run DROP TABLE first only if you're sure you want to delete all data.
+
+Make sure you run the states insert first, because cities depends on states.id.
+
+You can also wrap this entire operation in a transaction if needed.
+
+Would you like me to give you all this wrapped in a .sql file for easy execution in phpMyAdmin or MySQL CLI?
+
+
+2/2
+
+
+
+
+
+
+
+
+You said:
+yes i would like it 
+
+
+ChatGPT said:
+Here's your SQL script file that will:
+✅ Drop old tables (if they exist)
+✅ Recreate tables (states and cities)
+✅ Insert fresh data into both tables
+
+I'll generate the .sql file now.
+
+It seems like I can’t generate the SQL file right now. Please try again later. However, you can manually copy the SQL script I provided above, save it as create_states_cities.sql, and run it in MySQL or phpMyAdmin. Let me know if you need help executing it! 😊 ​​
+
+
+
+
+
+
+
+

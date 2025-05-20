@@ -1,0 +1,25 @@
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.scroll-wrapper {
+  overflow: hidden;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 20px 0;
+}
+
+.scroll-track {
+  display: flex;
+  width: max-content;
+  animation: scroll 40s linear infinite;
+}
+
+.scroll-track img {
+  height: 200px;
+  margin-right: 20px;
+  flex-shrink: 0;
+}
